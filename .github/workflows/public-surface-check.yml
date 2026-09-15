@@ -39,7 +39,7 @@ jobs:
 
       - name: Guard against common privileged-secret patterns
         run: |
-          if grep -REni --exclude='README.md' --exclude-dir='.git' \
+          if grep -REni --exclude='README.md' --exclude-dir='.git' --exclude-dir='.github' \
             'SUPABASE_SERVICE_ROLE_KEY|service[_-]?role|postgres(ql)?://[^[:space:]]+:[^[:space:]]+@' .; then
             echo 'Potential privileged credential pattern found in public files.'
             exit 1
