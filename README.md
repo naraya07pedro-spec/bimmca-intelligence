@@ -6,6 +6,22 @@ BIMMCA Intelligence is a public-safe monitoring and decision-support surface for
 
 The public application is connected to Supabase and is designed to consume structured data produced by a VAREVANT n8n monitoring workflow. This repository intentionally exposes the reviewable product/dashboard layer without publishing privileged credentials or confidential workflow logic.
 
+## Engineering snapshot
+
+This project is useful as public proof of an integration-oriented workflow rather than as a standalone static dashboard.
+
+**Architecture:** commercial-intent prompts → n8n monitoring → sampled AI response → structured extraction → Supabase → browser dashboard → diagnosis/strategy.
+
+**What a technical reviewer can verify here:**
+
+- a browser application consuming Supabase-backed state;
+- separation between orchestration/data collection and presentation;
+- explicit evidence boundaries around sampled AI responses;
+- a public/private boundary that avoids exposing privileged keys or confidential workflow logic;
+- a system design that turns structured monitoring output into an operating dashboard.
+
+Relevant engineering themes: workflow automation, API/data integration, Supabase/PostgreSQL-backed state, structured AI-response pipelines, and evidence-safe implementation.
+
 ## Technical reviewer quick start
 
 If you are evaluating this repository as engineering proof, start here:
