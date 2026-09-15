@@ -1,0 +1,47 @@
+name: Public surface checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify required public files
+        run: |
+          test -f README.md
+          test -f index.html
+          test -f netlify.toml
+
+      - name: Parse dashboard HTML
+        run: |
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class Parser(HTMLParser):
+              pass
+
+          html = Path('index.html').read_text(encoding='utf-8')
+          Parser().feed(html)
+          if '<title' not in html.lower():
+              raise SystemExit('index.html is missing a <title> element')
+          print('HTML parse check passed')
+          PY
+
+      - name: Guard against common privileged-secret patterns
+        run: |
+          if grep -REni --exclude='README.md' --exclude-dir='.git' \
+            'SUPABASE_SERVICE_ROLE_KEY|service[_-]?role|postgres(ql)?://[^[:space:]]+:[^[:space:]]+@' .; then
+            echo 'Potential privileged credential pattern found in public files.'
+            exit 1
+          fi
+          echo 'No common privileged-secret patterns found.'
