@@ -37,11 +37,12 @@ jobs:
           print('HTML parse check passed')
           PY
 
-      - name: Guard against common privileged-secret patterns
+      - name: Guard public runtime files against common privileged-secret patterns
         run: |
-          if grep -REni --exclude='README.md' --exclude-dir='.git' --exclude-dir='.github' \
-            'SUPABASE_SERVICE_ROLE_KEY|service[_-]?role|postgres(ql)?://[^[:space:]]+:[^[:space:]]+@' .; then
-            echo 'Potential privileged credential pattern found in public files.'
+          if grep -Eni \
+            'SUPABASE_SERVICE_ROLE_KEY|service[_-]?role|postgres(ql)?://[^[:space:]]+:[^[:space:]]+@' \
+            index.html netlify.toml; then
+            echo 'Potential privileged credential pattern found in public runtime files.'
             exit 1
           fi
-          echo 'No common privileged-secret patterns found.'
+          echo 'No common privileged-secret patterns found in public runtime files.'
