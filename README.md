@@ -2,9 +2,25 @@
 
 **AI Authority Intelligence dashboard powered by VAREVANT.**
 
-This repository contains the public client-facing dashboard layer for monitoring sampled AI recommendation visibility, competitive authority, and strategic gaps.
+BIMMCA Intelligence is a public-safe monitoring and decision-support surface for sampled AI recommendation visibility, competitive authority, and strategic gaps.
 
-The dashboard is connected to Supabase and is designed to consume data produced by a VAREVANT n8n monitoring workflow.
+The public application is connected to Supabase and is designed to consume structured data produced by a VAREVANT n8n monitoring workflow. This repository intentionally exposes the reviewable product/dashboard layer without publishing privileged credentials or confidential workflow logic.
+
+## Technical reviewer quick start
+
+If you are evaluating this repository as engineering proof, start here:
+
+1. Read the architecture and evidence boundary below.
+2. Inspect [`index.html`](index.html) for the public dashboard/application layer.
+3. Review how the dashboard consumes Supabase-backed state rather than hard-coding a static report.
+4. Note the explicit distinction between sampled AI responses and complete platform-wide visibility.
+5. Run the project locally with a simple static server if you want to inspect the interface.
+
+```bash
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`.
 
 ## What the current dashboard shows
 
@@ -18,6 +34,18 @@ The public application includes:
 - Evidence / source-state view
 
 The current interface is configured around an Indonesia / women’s deodorant monitoring example and shows NIVEA alongside tracked competitors.
+
+## Public engineering scope
+
+The public repository demonstrates:
+
+- a browser-based dashboard built with HTML, CSS, and JavaScript;
+- Supabase-backed state consumption through the JavaScript client;
+- separation between data collection/orchestration and the presentation layer;
+- evidence-aware reporting instead of claiming complete visibility into every AI response;
+- a clear public/private boundary around credentials and commercial logic.
+
+The automation/orchestration layer itself is intentionally not fully published because it may contain operational logic, credentials, and private data boundaries that should not be exposed simply to make a portfolio look larger.
 
 ## Architecture
 
@@ -53,6 +81,18 @@ A stronger trend requires:
 
 The dashboard is therefore a decision-support layer, not a claim of complete visibility into an AI provider’s total answer population.
 
+## Reliability and safety boundaries
+
+This public surface is designed around a few explicit boundaries:
+
+- privileged database/service-role credentials are not published;
+- private n8n credentials are not published;
+- client-private source material is not published;
+- the dashboard does not claim universal AI-platform coverage;
+- public evidence is limited to what can be shown safely and verified from the repository.
+
+A publishable client-side key is not a substitute for database authorization. Privileged keys and administrative access must remain private.
+
 ## Technology
 
 Current public layer:
@@ -62,17 +102,14 @@ Current public layer:
 - Supabase-backed live metrics
 - n8n monitoring/orchestration outside this public repository
 
-## Public / private boundary
+## Repository map
 
-This repository intentionally does **not** publish:
-
-- service-role database credentials;
-- private n8n credentials;
-- confidential client source material;
-- private raw data that should not be exposed;
-- administration access to the backend.
-
-The client-side application may contain a platform-defined **publishable** key. A publishable key is not a substitute for correct database authorization; privileged keys and administrative access must remain private.
+```text
+.
+├── README.md       # Technical overview and evidence boundaries
+├── index.html      # Public dashboard/application layer
+└── netlify.toml    # Static deployment configuration
+```
 
 ## Why the automation itself is not fully public
 
@@ -91,10 +128,13 @@ For technical review, the important architecture boundary is:
 
 This repository is proof of the dashboard/application layer and its public-safe architecture. It should not be used to infer unverified client revenue results, universal AI-platform coverage, or access to private model conversations.
 
-## VAREVANT
+## Related engineering work
 
-Technical execution: automation, backend systems, integrations, and bounded AI-agent workflows.
-
-- [varevant.com](https://varevant.com)
 - [VAREVANT technical repository](https://github.com/naraya07pedro-spec/varevant.com)
-- [evan@varevant.com](mailto:evan@varevant.com)
+- [varevant.com](https://varevant.com)
+- [LinkedIn — Evan Naraya](https://www.linkedin.com/in/evannaraya)
+
+## Contact
+
+**Evan Naraya — VAREVANT**  
+[evan@varevant.com](mailto:evan@varevant.com)
