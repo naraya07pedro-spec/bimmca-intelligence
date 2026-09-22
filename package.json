@@ -1,0 +1,11 @@
+{
+  "name": "bimmca-public-dashboard-checks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "python3 scripts/check-docs.py && git diff --check"
+  },
+  "engines": { "node": ">=24" }
+}

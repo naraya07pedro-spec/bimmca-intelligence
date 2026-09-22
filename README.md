@@ -1,156 +1,49 @@
 # BIMMCA Intelligence
 
-**AI Authority Intelligence dashboard powered by VAREVANT.**
+JavaScript dashboard for comparing sampled AI recommendation metrics. The public implementation reads Gemini rows from Supabase and refreshes the view on database change notifications.
 
-BIMMCA Intelligence is a public-safe monitoring and decision-support surface for sampled AI recommendation visibility, competitive authority, and strategic gaps.
+**Scope:** this repository contains the browser consumer. Database migrations, row-level security policies, metric calculation, raw AI responses, and n8n ingestion workflows are not included or runtime-verified here.
 
-The public application is connected to Supabase and is designed to consume structured data produced by a VAREVANT n8n monitoring workflow. This repository intentionally exposes the reviewable product/dashboard layer without publishing privileged credentials or confidential workflow logic.
+## Technical review path
 
-## Engineering snapshot
+1. [`index.html`](index.html) — inline `load()`, `render()`, ranking, and Realtime callback.
+2. [`tests/dashboard.test.mjs`](tests/dashboard.test.mjs) — offline tests of the actual inline script with DOM/Supabase doubles.
+3. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — source-backed data flow, consumer contract, and known limitations.
+4. [`tests/fixtures/brand-metrics.json`](tests/fixtures/brand-metrics.json) — synthetic input for tests, not historical monitoring evidence.
+5. [`SECURITY.md`](SECURITY.md) — public-key boundary and private reporting.
+6. [GitHub Actions](https://github.com/naraya07pedro-spec/bimmca-intelligence/actions/workflows/public-surface-check.yml) — HTML, source safety, documentation, and offline test checks.
 
-This project is useful as public proof of an integration-oriented workflow rather than as a standalone static dashboard.
+## Run and check
 
-**Architecture:** commercial-intent prompts → n8n monitoring → sampled AI response → structured extraction → Supabase → browser dashboard → diagnosis/strategy.
+Use Node.js 24 for the dependency-free checks:
 
-**What a technical reviewer can verify here:**
+```bash
+npm ci
+npm test
+npm run check
+```
 
-- a browser application consuming Supabase-backed state;
-- separation between orchestration/data collection and presentation;
-- explicit evidence boundaries around sampled AI responses;
-- a public/private boundary that avoids exposing privileged keys or confidential workflow logic;
-- a system design that turns structured monitoring output into an operating dashboard.
+The tests do not contact Supabase, fetch the CDN, or require credentials. They execute the current inline JavaScript in a Node VM; they are not browser end-to-end or database integration tests. There is no TypeScript project or build step in this static application.
 
-Relevant engineering themes: workflow automation, API/data integration, Supabase/PostgreSQL-backed state, structured AI-response pipelines, and evidence-safe implementation.
-
-## Technical reviewer quick start
-
-If you are evaluating this repository as engineering proof, start here:
-
-1. Read the architecture and evidence boundary below.
-2. Inspect [`index.html`](index.html) for the public dashboard/application layer.
-3. Review how the dashboard consumes Supabase-backed state rather than hard-coding a static report.
-4. Note the explicit distinction between sampled AI responses and complete platform-wide visibility.
-5. Run the project locally with a simple static server if you want to inspect the interface.
+To serve the application:
 
 ```bash
 python -m http.server 8000
 ```
 
-Then open `http://localhost:8000`.
+Open `http://localhost:8000`. The browser then loads the Supabase client from a CDN and uses the endpoint already configured in `index.html`; successful operation depends on network access and backend authorization. The repository does not provide a local database setup. Deployment configuration is in [`netlify.toml`](netlify.toml).
 
-## What the current dashboard shows
+## What is verified
 
-The public application includes:
+- The browser queries `brand_metrics_latest`, selects all columns, and filters `platform = gemini`.
+- Rows are ranked by descending `visibility_score`; NIVEA is the focal brand in the current interface.
+- A `postgres_changes` subscription triggers the same filtered query again.
+- An initial query error is surfaced as `LIVE DATA ERROR`.
 
-- Executive Brief
-- AI Authority metrics
-- Competitive Landscape
-- Strategic Gaps
-- Strategy Center
-- Evidence / source-state view
-
-The current interface is configured around an Indonesia / women’s deodorant monitoring example and shows NIVEA alongside tracked competitors.
-
-## Public engineering scope
-
-The public repository demonstrates:
-
-- a browser-based dashboard built with HTML, CSS, and JavaScript;
-- Supabase-backed state consumption through the JavaScript client;
-- separation between data collection/orchestration and the presentation layer;
-- evidence-aware reporting instead of claiming complete visibility into every AI response;
-- a clear public/private boundary around credentials and commercial logic.
-
-The automation/orchestration layer itself is intentionally not fully published because it may contain operational logic, credentials, and private data boundaries that should not be exposed simply to make a portfolio look larger.
-
-## Architecture
-
-```mermaid
-flowchart LR
-    A[Commercial-intent prompt set] --> B[n8n monitoring workflow]
-    B --> C[Sampled AI response]
-    C --> D[Structured extraction]
-    D --> E[Supabase]
-    E --> F[BIMMCA Intelligence dashboard]
-    F --> G[Diagnosis + strategy]
-```
-
-The dashboard code currently references:
-
-- `brand_metrics_latest` — latest brand-level metrics
-- `ai_responses` — sampled AI outputs
-- `prompts` — active prompt set
-- n8n schedule cadence described in the UI as every 30 minutes
-
-## Measurement principle
-
-The system measures a **sample** of AI responses. It does not claim access to private consumer conversations or to every answer produced by an AI platform.
-
-That distinction is intentional.
-
-A stronger trend requires:
-
-- broader prompt coverage;
-- repeated runs over time;
-- consistent extraction rules;
-- comparison against the same tracked brands and intent categories.
-
-The dashboard is therefore a decision-support layer, not a claim of complete visibility into an AI provider’s total answer population.
-
-## Reliability and safety boundaries
-
-This public surface is designed around a few explicit boundaries:
-
-- privileged database/service-role credentials are not published;
-- private n8n credentials are not published;
-- client-private source material is not published;
-- the dashboard does not claim universal AI-platform coverage;
-- public evidence is limited to what can be shown safely and verified from the repository.
-
-A publishable client-side key is not a substitute for database authorization. Privileged keys and administrative access must remain private.
-
-## Technology
-
-Current public layer:
-
-- HTML / CSS / JavaScript
-- Supabase JavaScript client
-- Supabase-backed live metrics
-- n8n monitoring/orchestration outside this public repository
-
-## Repository map
-
-```text
-.
-├── README.md       # Technical overview and evidence boundaries
-├── index.html      # Public dashboard/application layer
-└── netlify.toml    # Static deployment configuration
-```
-
-## Why the automation itself is not fully public
-
-The purpose of this repository is to make the product surface and public-safe system design reviewable without leaking operational credentials or private commercial logic.
-
-For technical review, the important architecture boundary is:
-
-1. prompts are defined;
-2. n8n runs the monitoring process;
-3. responses are sampled and structured;
-4. Supabase stores the resulting state;
-5. the dashboard turns that state into an operating view;
-6. strategy is treated as a hypothesis to validate against accumulating evidence.
+The UI also mentions `ai_responses`, `prompts`, and a 30-minute n8n schedule. Those are display text, not proof of tables, ingestion execution, or scheduler activity. Static strategy copy and `LIVE` indicators do not verify metric provenance or freshness. See the [architecture and limitations](docs/ARCHITECTURE.md) before drawing operational conclusions.
 
 ## Evidence boundary
 
-This repository is proof of the dashboard/application layer and its public-safe architecture. It should not be used to infer unverified client revenue results, universal AI-platform coverage, or access to private model conversations.
+Test fixtures are synthetic. No public backend schema, n8n execution screenshot, or ingestion log is supplied for BIMMCA. The Supabase client integration is inspectable; live data correctness, RLS, uptime, production traffic, client impact, and business outcomes remain unverified.
 
-## Related engineering work
-
-- [VAREVANT technical repository](https://github.com/naraya07pedro-spec/varevant.com)
-- [varevant.com](https://varevant.com)
-- [LinkedIn — Evan Naraya](https://www.linkedin.com/in/evannaraya)
-
-## Contact
-
-**Evan Naraya — VAREVANT**  
-[evan@varevant.com](mailto:evan@varevant.com)
+Related work: [Production Integration Reference](https://github.com/naraya07pedro-spec/production-integration-reference) · [VAREVANT](https://github.com/naraya07pedro-spec/varevant.com).
