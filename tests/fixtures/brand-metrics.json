@@ -1,0 +1,4 @@
+[
+  {"platform":"gemini","brand":"NIVEA","visibility_score":60,"share_of_voice":30,"avg_position":2,"top1_rate":20,"recommendation_rate":50,"positive_sentiment":70,"updated_at":"2026-01-01T00:00:00Z"},
+  {"platform":"gemini","brand":"Example Brand","visibility_score":80,"share_of_voice":40,"avg_position":1,"top1_rate":30,"recommendation_rate":60,"positive_sentiment":75,"updated_at":"2026-01-02T00:00:00Z"}
+]
