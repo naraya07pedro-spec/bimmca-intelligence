@@ -23,7 +23,7 @@ npm test
 npm run check
 ```
 
-The tests do not contact Supabase, fetch the CDN, or require credentials. They execute the current inline JavaScript in a Node VM; they are not browser end-to-end or database integration tests. There is no TypeScript project or build step in this static application.
+The tests do not contact Supabase, fetch the CDN, or require credentials. They execute the current inline JavaScript in a Node VM and cover success, initial failure, empty data, missing focal brand, realtime success/failure, concurrent change coalescing, and invalid numeric values; they are not browser end-to-end or database integration tests. There is no TypeScript project or build step in this static application.
 
 To serve the application:
 
@@ -39,6 +39,11 @@ Open `http://localhost:8000`. The browser then loads the Supabase client from a 
 - Rows are ranked by descending `visibility_score`; NIVEA is the focal brand in the current interface.
 - A `postgres_changes` subscription triggers the same filtered query again.
 - An initial query error is surfaced as `LIVE DATA ERROR`.
+- Empty query results clear previous metrics and render an explicit `NO DATA · GEMINI` state.
+- A missing NIVEA row does not render an invalid `#0` rank.
+- Realtime refetch failures keep the last successful view but mark it `STALE · REFRESH ERROR`.
+- Concurrent realtime change events are coalesced while a refetch is already in flight.
+- Missing or nonnumeric metric values render defensively instead of silently becoming zero.
 
 The UI also mentions `ai_responses`, `prompts`, and a 30-minute n8n schedule. Those are display text, not proof of tables, ingestion execution, or scheduler activity. Static strategy copy and `LIVE` indicators do not verify metric provenance or freshness. See the [architecture and limitations](docs/ARCHITECTURE.md) before drawing operational conclusions.
 

@@ -74,24 +74,57 @@ const SB_URL='https://krrpydgylblpfqxngcbi.supabase.co';
 const SB_KEY='sb_publishable_v4jUNr3GBZeKkcpX4SxCRQ_O4XERDTU';
 const COLORS={NIVEA:'#0eb9d4',Rexona:'#4f8fff',Dove:'#20aa70',Casablanca:'#f47e2d'};
 let rows=[];
-const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-$$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.toggle('active',x===b));$$('.section').forEach(s=>s.classList.toggle('active',s.id===b.dataset.id));window.scrollTo(0,0)});
-function fmt(v,d=1){const n=Number(v);return Number.isFinite(n)?n.toFixed(d):'—'}
-function sorted(){return [...rows].sort((a,b)=>Number(b.visibility_score||0)-Number(a.visibility_score||0))}
-function render(){if(!rows.length)return;const s=sorted(),n=s.find(x=>x.brand==='NIVEA'),top=s[0],rank=s.findIndex(x=>x.brand==='NIVEA')+1;
-  $('#headline').textContent=top.brand==='NIVEA'?`NIVEA is #1 in the latest tracked sample.`:`NIVEA is #${rank}. ${top.brand} leads the latest tracked sample.`;
-  const stamp=s.map(x=>x.updated_at).filter(Boolean).sort().pop();$('#lastUpdate').textContent=stamp?new Date(stamp).toLocaleString('en-GB',{timeZone:'Asia/Jakarta'}):'—';
-  $('#sampleNote').textContent=`${s.length} brands currently measured from the latest Gemini monitoring run.`;
-  const metrics=[['AI Authority Score',fmt(n?.visibility_score),'Current composite score'],['Overall Rank','#'+rank,'Among tracked brands'],['Share of Voice',fmt(n?.share_of_voice)+'%','Current sample share'],['Avg. Position',fmt(n?.avg_position),'Lower is better'],['Top-1 Rate',fmt(n?.top1_rate)+'%','First recommendation rate'],['Positive Sentiment',fmt(n?.positive_sentiment)+'%','Current sentiment score']];
-  $('#kpis').innerHTML=metrics.map(m=>`<div class="box kpi"><label>${m[0]}</label><b>${m[1]}</b><small>${m[2]}</small></div>`).join('');
-  const head='<thead><tr><th>Brand</th><th>Rank</th><th>Authority</th><th>SOV</th><th>Avg position</th><th>Top-1</th><th>Recommendation</th><th>Positive</th></tr></thead>';
-  const body='<tbody>'+s.map((r,i)=>`<tr><td><b>${r.brand}</b></td><td><span class="rank">#${i+1}</span></td><td class="num">${fmt(r.visibility_score)}</td><td class="num">${fmt(r.share_of_voice)}%</td><td class="num">${fmt(r.avg_position)}</td><td class="num">${fmt(r.top1_rate)}%</td><td class="num">${fmt(r.recommendation_rate)}%</td><td class="num">${fmt(r.positive_sentiment)}%</td></tr>`).join('')+'</tbody>';
-  $('#overviewTable').innerHTML=head+body;$('#competitorTable').innerHTML=head+body;
-  $('#authorityBars').innerHTML=s.map(r=>`<div style="padding:10px 0;border-bottom:1px solid #e8eff3"><div style="display:flex;justify-content:space-between"><b>${r.brand}</b><span class="num">${fmt(r.visibility_score)}</span></div><div class="bar"><i style="width:${Math.max(0,Math.min(100,Number(r.visibility_score)||0))}%;background:${COLORS[r.brand]||'#789'}"></i></div></div>`).join('');
-  $('#status').textContent='LIVE · GEMINI';$('#dot').style.background='#20aa70';
+const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+qa('.nav button').forEach(b=>b.onclick=()=>{qa('.nav button').forEach(x=>x.classList.toggle('active',x===b));qa('.section').forEach(s=>s.classList.toggle('active',s.id===b.dataset.id));window.scrollTo(0,0)});
+function numberOrNull(v){if(v===null||v===undefined||v==='')return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function fmt(v,d=1){const n=numberOrNull(v);return n===null?'—':n.toFixed(d)}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function sorted(){return [...rows].sort((a,b)=>(numberOrNull(b.visibility_score)??-Infinity)-(numberOrNull(a.visibility_score)??-Infinity))}
+function setStatus(label,color){q('#status').textContent=label;q('#dot').style.background=color}
+function renderEmpty(){
+  q('#headline').textContent='No Gemini metrics are available in the latest query.';
+  q('#lastUpdate').textContent='—';
+  q('#sampleNote').textContent='No tracked-brand rows were returned. Waiting for the next database change.';
+  q('#kpis').innerHTML='';
+  const empty='<tbody><tr><td colspan="8" class="muted">No Gemini metrics available.</td></tr></tbody>';
+  q('#overviewTable').innerHTML=empty;
+  q('#competitorTable').innerHTML=empty;
+  q('#authorityBars').innerHTML='<div class="muted">No authority metrics available.</div>';
+  setStatus('NO DATA · GEMINI','#d6a535');
 }
-async function load(){const client=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});window.sb=client;const q=await client.from('brand_metrics_latest').select('*').eq('platform','gemini');if(q.error)throw q.error;rows=q.data||[];render();client.channel('bimmca-live').on('postgres_changes',{event:'*',schema:'public',table:'brand_metrics_latest'},async()=>{const x=await client.from('brand_metrics_latest').select('*').eq('platform','gemini');if(!x.error){rows=x.data||[];render()}}).subscribe(st=>{if(st==='SUBSCRIBED'){ $('#status').textContent='LIVE · GEMINI';$('#dot').style.background='#20aa70';}})}
-load().catch(err=>{console.error(err);$('#status').textContent='LIVE DATA ERROR';$('#dot').style.background='#d94f5d';$('#sampleNote').textContent='Could not load current Supabase metrics.'});
+function render(){
+  if(!rows.length){renderEmpty();return}
+  const s=sorted(),rankIndex=s.findIndex(x=>x.brand==='NIVEA'),n=rankIndex>=0?s[rankIndex]:null,top=s[0],rank=rankIndex>=0?rankIndex+1:null;
+  q('#headline').textContent=rank===null?'NIVEA is not present in the latest tracked sample. '+(top?.brand||'Another brand')+' leads the available rows.':top.brand==='NIVEA'?'NIVEA is #1 in the latest tracked sample.':'NIVEA is #'+rank+'. '+top.brand+' leads the latest tracked sample.';
+  const dates=s.map(x=>x.updated_at).filter(Boolean).map(v=>new Date(v)).filter(d=>!Number.isNaN(d.getTime())).sort((a,b)=>a-b);
+  const stamp=dates.at(-1);q('#lastUpdate').textContent=stamp?stamp.toLocaleString('en-GB',{timeZone:'Asia/Jakarta'}):'—';
+  q('#sampleNote').textContent=s.length+' brands currently measured from the latest Gemini query result.';
+  const metrics=[['AI Authority Score',fmt(n?.visibility_score),'Current composite score'],['Overall Rank',rank===null?'—':'#'+rank,'Among tracked brands'],['Share of Voice',fmt(n?.share_of_voice)+(numberOrNull(n?.share_of_voice)===null?'':'%'),'Current sample share'],['Avg. Position',fmt(n?.avg_position),'Lower is better'],['Top-1 Rate',fmt(n?.top1_rate)+(numberOrNull(n?.top1_rate)===null?'':'%'),'First recommendation rate'],['Positive Sentiment',fmt(n?.positive_sentiment)+(numberOrNull(n?.positive_sentiment)===null?'':'%'),'Current sentiment score']];
+  q('#kpis').innerHTML=metrics.map(m=>'<div class="box kpi"><label>'+esc(m[0])+'</label><b>'+esc(m[1])+'</b><small>'+esc(m[2])+'</small></div>').join('');
+  const head='<thead><tr><th>Brand</th><th>Rank</th><th>Authority</th><th>SOV</th><th>Avg position</th><th>Top-1</th><th>Recommendation</th><th>Positive</th></tr></thead>';
+  const body='<tbody>'+s.map((r,i)=>'<tr><td><b>'+esc(r.brand||'Unnamed')+'</b></td><td><span class="rank">#'+(i+1)+'</span></td><td class="num">'+fmt(r.visibility_score)+'</td><td class="num">'+fmt(r.share_of_voice)+(numberOrNull(r.share_of_voice)===null?'':'%')+'</td><td class="num">'+fmt(r.avg_position)+'</td><td class="num">'+fmt(r.top1_rate)+(numberOrNull(r.top1_rate)===null?'':'%')+'</td><td class="num">'+fmt(r.recommendation_rate)+(numberOrNull(r.recommendation_rate)===null?'':'%')+'</td><td class="num">'+fmt(r.positive_sentiment)+(numberOrNull(r.positive_sentiment)===null?'':'%')+'</td></tr>').join('')+'</tbody>';
+  q('#overviewTable').innerHTML=head+body;q('#competitorTable').innerHTML=head+body;
+  q('#authorityBars').innerHTML=s.map(r=>{const score=numberOrNull(r.visibility_score)??0;return '<div style="padding:10px 0;border-bottom:1px solid #e8eff3"><div style="display:flex;justify-content:space-between"><b>'+esc(r.brand||'Unnamed')+'</b><span class="num">'+fmt(r.visibility_score)+'</span></div><div class="bar"><i style="width:'+Math.max(0,Math.min(100,score))+'%;background:'+(COLORS[r.brand]||'#789')+'"></i></div></div>'}).join('');
+  setStatus('LIVE · GEMINI','#20aa70');
+}
+function markRefreshError(err){
+  console.error(err);
+  setStatus(rows.length?'STALE · REFRESH ERROR':'REFRESH ERROR','#d94f5d');
+  q('#sampleNote').textContent=rows.length?'Showing the last successful sample; realtime refresh failed.':'No current metrics are available; realtime refresh failed.';
+}
+async function load(){
+  const client=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});window.sb=client;
+  const queryMetrics=()=>client.from('brand_metrics_latest').select('*').eq('platform','gemini');
+  const initial=await queryMetrics();if(initial.error)throw initial.error;rows=Array.isArray(initial.data)?initial.data:[];render();
+  let refreshInFlight=null,refreshQueued=false;
+  async function refresh(){
+    if(refreshInFlight){refreshQueued=true;return refreshInFlight}
+    refreshInFlight=(async()=>{do{refreshQueued=false;const x=await queryMetrics();if(x.error){markRefreshError(x.error);return}rows=Array.isArray(x.data)?x.data:[];render()}while(refreshQueued)})();
+    try{return await refreshInFlight}finally{refreshInFlight=null;if(refreshQueued)return refresh()}
+  }
+  client.channel('bimmca-live').on('postgres_changes',{event:'*',schema:'public',table:'brand_metrics_latest'},refresh).subscribe();
+}
+load().catch(err=>{console.error(err);setStatus('LIVE DATA ERROR','#d94f5d');q('#sampleNote').textContent='Could not load current Supabase metrics.'});
 </script>
 </body>
 </html>
