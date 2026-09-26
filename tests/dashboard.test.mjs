@@ -26,7 +26,7 @@ async function harness(responses = [{ data: structuredClone(fixture), error: nul
         queryCalls.push({ table, columns, field, value });
         const result = responses.shift();
         assert.ok(result, 'Unexpected query beyond provided responses');
-        return result;
+        return await result;
       } }; } };
     },
     channel(name) {
@@ -47,13 +47,14 @@ async function harness(responses = [{ data: structuredClone(fixture), error: nul
   return { element, queryCalls, errors, subscription, clientOptions, context };
 }
 
-test('queries only the Gemini consumer table and disables persisted auth sessions', async () => {
+test('initial success queries only the Gemini consumer table and disables persisted auth sessions', async () => {
   const h = await harness();
   assert.deepEqual(h.queryCalls, [{ table: 'brand_metrics_latest', columns: '*', field: 'platform', value: 'gemini' }]);
   assert.equal(h.clientOptions.auth.persistSession, false);
+  assert.equal(h.element('#status').textContent, 'LIVE · GEMINI');
 });
 
-test('ranks by authority without mutating query input and renders the focal brand', async () => {
+test('ranks by authority without mutating input and renders the focal brand', async () => {
   const rows = structuredClone(fixture);
   const h = await harness([{ data: rows, error: null }]);
   assert.equal(rows[0].brand, 'NIVEA');
@@ -63,15 +64,34 @@ test('ranks by authority without mutating query input and renders the focal bran
   assert.ok(h.element('#overviewTable').innerHTML.indexOf('Example Brand') < h.element('#overviewTable').innerHTML.indexOf('NIVEA'));
 });
 
-test('clamps rendered bar widths at both boundaries', async () => {
+test('renders an explicit empty state and clears previous metric surfaces', async () => {
+  const h = await harness([{ data: fixture, error: null }, { data: [], error: null }]);
+  await h.subscription.callback();
+  assert.equal(h.element('#status').textContent, 'NO DATA · GEMINI');
+  assert.match(h.element('#headline').textContent, /No Gemini metrics/);
+  assert.match(h.element('#overviewTable').innerHTML, /No Gemini metrics available/);
+  assert.equal(h.element('#kpis').innerHTML, '');
+});
+
+test('does not render an invalid #0 rank when the focal brand is missing', async () => {
+  const withoutFocal = structuredClone(fixture).filter(row => row.brand !== 'NIVEA');
+  const h = await harness([{ data: withoutFocal, error: null }]);
+  assert.match(h.element('#headline').textContent, /NIVEA is not present/);
+  assert.doesNotMatch(h.element('#headline').textContent, /#0/);
+  assert.doesNotMatch(h.element('#kpis').innerHTML, /#0/);
+});
+
+test('normalizes invalid and missing numeric values and clamps bar widths', async () => {
   const rows = structuredClone(fixture);
-  rows[0].visibility_score = -10;
+  rows[0].visibility_score = null;
+  rows[0].share_of_voice = 'invalid';
   rows[1].visibility_score = 150;
   const h = await harness([{ data: rows, error: null }]);
-  const bars = h.element('#authorityBars').innerHTML;
-  assert.match(bars, /width:0%;/);
-  assert.match(bars, /width:100%;/);
-  assert.doesNotMatch(bars, /width:(-10|150)%;/);
+  assert.match(h.element('#overviewTable').innerHTML, /—/);
+  assert.match(h.element('#authorityBars').innerHTML, /width:0%;/);
+  assert.match(h.element('#authorityBars').innerHTML, /width:100%;/);
+  assert.equal(new Script('fmt(null)').runInContext(h.context), '—');
+  assert.equal(new Script("fmt('invalid')").runInContext(h.context), '—');
 });
 
 test('refetches the filtered dataset after a table change', async () => {
@@ -97,24 +117,32 @@ test('surfaces an initial query failure and does not subscribe', async () => {
   assert.deepEqual(h.errors, [error]);
 });
 
-test('records the current stale-view limitation after a failed refetch', async () => {
-  const h = await harness([{ data: fixture, error: null }, { data: null, error: new Error('synthetic refresh failure') }]);
+test('marks the current view stale when a realtime refetch fails', async () => {
+  const error = new Error('synthetic refresh failure');
+  const h = await harness([{ data: fixture, error: null }, { data: null, error }]);
   const before = h.element('#overviewTable').innerHTML;
   await h.subscription.callback();
   assert.equal(h.element('#overviewTable').innerHTML, before);
-  assert.equal(h.element('#status').textContent, 'LIVE · GEMINI');
-  assert.equal(h.errors.length, 0);
+  assert.equal(h.element('#status').textContent, 'STALE · REFRESH ERROR');
+  assert.match(h.element('#sampleNote').textContent, /last successful sample/);
+  assert.deepEqual(h.errors, [error]);
 });
 
-test('records the current empty-result limitation after an update', async () => {
-  const h = await harness([{ data: fixture, error: null }, { data: [], error: null }]);
-  const before = h.element('#overviewTable').innerHTML;
-  await h.subscription.callback();
-  assert.equal(h.element('#overviewTable').innerHTML, before);
-});
-
-test('formats invalid numeric text and records null-to-zero conversion', async () => {
-  const h = await harness();
-  assert.equal(new Script("fmt('invalid')").runInContext(h.context), '—');
-  assert.equal(new Script('fmt(null)').runInContext(h.context), '0.0');
+test('coalesces concurrent realtime change events into one follow-up refetch', async () => {
+  let resolveRefresh;
+  const firstRefresh = new Promise(resolve => { resolveRefresh = resolve; });
+  const updated = structuredClone(fixture);
+  updated[0].visibility_score = 91;
+  const h = await harness([
+    { data: fixture, error: null },
+    firstRefresh,
+    { data: updated, error: null },
+  ]);
+  const p1 = h.subscription.callback();
+  const p2 = h.subscription.callback();
+  assert.equal(h.queryCalls.length, 2);
+  resolveRefresh({ data: fixture, error: null });
+  await Promise.all([p1, p2]);
+  assert.equal(h.queryCalls.length, 3);
+  assert.match(h.element('#headline').textContent, /NIVEA is #1/);
 });
