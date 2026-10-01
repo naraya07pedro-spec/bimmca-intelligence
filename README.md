@@ -52,3 +52,5 @@ The UI also mentions `ai_responses`, `prompts`, and a 30-minute n8n schedule. Th
 Test fixtures are synthetic. No public backend schema, n8n execution screenshot, or ingestion log is supplied for BIMMCA. The Supabase client integration is inspectable; live data correctness, RLS, uptime, production traffic, client impact, and business outcomes remain unverified.
 
 Related work: [Production Integration Reference](https://github.com/naraya07pedro-spec/production-integration-reference) · [VAREVANT](https://github.com/naraya07pedro-spec/varevant.com).
+
+For separate workflow-source proof, open the [VAREVANT n8n engineering pack](https://github.com/naraya07pedro-spec/varevant.com/tree/main/n8n). It is historical VAREVANT evidence, not BIMMCA's missing ingestion implementation.
