@@ -13,6 +13,8 @@ JavaScript dashboard for comparing sampled AI recommendation metrics. The public
 5. [`SECURITY.md`](SECURITY.md) — public-key boundary and private reporting.
 6. [GitHub Actions](https://github.com/naraya07pedro-spec/bimmca-intelligence/actions/workflows/public-surface-check.yml) — HTML, source safety, documentation, and offline test checks.
 
+**Debugging case:** [failed refresh visibility and concurrent-event coalescing](docs/DEBUGGING-CASE.md) — merged source hardening plus offline tests; live outage history is not claimed.
+
 ## Run and check
 
 Use Node.js 24 for the dependency-free checks:
