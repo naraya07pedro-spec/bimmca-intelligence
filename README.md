@@ -1,5 +1,20 @@
 # BIMMCA Intelligence
 
+## Hiring manager quick scan
+
+**Role fit:** JavaScript · Supabase · Data/AI Application Support
+
+This is a supporting project, not my primary backend flagship. The public repository proves the browser-side consumer and defensive refresh behavior around Supabase data.
+
+- JavaScript data loading and ranking
+- Supabase query + Realtime refresh
+- Explicit empty, stale and error states
+- Concurrent refresh coalescing
+- Offline tests of the current inline application logic
+
+**Fastest review path:** [application](index.html) → [tests](tests/dashboard.test.mjs) → [architecture](docs/ARCHITECTURE.md) → [debugging case](docs/DEBUGGING-CASE.md)
+
+
 JavaScript dashboard for comparing sampled AI recommendation metrics. The public implementation reads Gemini rows from Supabase and refreshes the view on database change notifications.
 
 **Scope:** this repository contains the browser consumer. Database migrations, row-level security policies, metric calculation, raw AI responses, and n8n ingestion workflows are not included or runtime-verified here.
